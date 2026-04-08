@@ -8,6 +8,11 @@ import os
 import subprocess
 import asyncio
 import json
+import urllib.request
+import urllib.parse
+import xml.etree.ElementTree as ET
+import datetime
+import sys
 
 app = FastAPI(title="NRL AI Predictor API")
 
@@ -33,12 +38,69 @@ class MatchRequest(BaseModel):
     away_team: str
     venue: str
     plays: int = 40
+    openrouter_key: str = ""
+    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct"
 
 
 class TrainRequest(BaseModel):
     epochs: int = 5
     batch_size: int = 8
     learning_rate: float = 0.001
+
+
+def get_team_news(team: str):
+    try:
+        url = (
+            f"https://news.google.com/rss/search?q={urllib.parse.quote(team + ' NRL')}"
+        )
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=3) as response:
+            xml_data = response.read()
+        root = ET.fromstring(xml_data)
+        headlines = []
+        for item in root.findall("./channel/item")[:3]:
+            headlines.append(item.find("title").text)
+        return headlines
+    except Exception as e:
+        return [f"Could not fetch recent news for {team}."]
+
+
+async def query_openrouter_stream(prompt: str, api_key: str, model_id: str):
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    data = {
+        "model": model_id,
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": True,
+    }
+    req = urllib.request.Request(
+        url, data=json.dumps(data).encode("utf-8"), headers=headers, method="POST"
+    )
+    try:
+
+        def do_request():
+            with urllib.request.urlopen(req) as response:
+                for line in response:
+                    yield line
+
+        # We iterate over the blocking stream using a thread to avoid blocking the event loop entirely
+        iterator = asyncio.to_thread(do_request)
+        stream_lines = await iterator
+        for line in stream_lines:
+            if line:
+                decoded = line.decode("utf-8").strip()
+                if decoded.startswith("data: ") and decoded != "data: [DONE]":
+                    try:
+                        chunk = json.loads(decoded[6:])
+                        if "choices" in chunk and len(chunk["choices"]) > 0:
+                            delta = chunk["choices"][0].get("delta", {})
+                            if "content" in delta:
+                                yield delta["content"]
+                    except:
+                        pass
+            await asyncio.sleep(0.01)
+    except Exception as e:
+        yield f"\n[LLM Integration Error: {str(e)}]\n"
 
 
 @app.get("/api/info")
@@ -183,6 +245,61 @@ async def predict_outcome(req: MatchRequest):
 
         yield json.dumps({"type": "result", "content": result}) + "\n"
 
+        if req.openrouter_key:
+            yield (
+                json.dumps(
+                    {
+                        "type": "thinking",
+                        "content": "Fetching real-time heuristic data (Google News RSS)...",
+                    }
+                )
+                + "\n"
+            )
+            home_news = get_team_news(req.home_team)
+            away_news = get_team_news(req.away_team)
+
+            yield (
+                json.dumps(
+                    {
+                        "type": "thinking",
+                        "content": "Consulting OpenRouter LLM for final heuristic integration...",
+                    }
+                )
+                + "\n"
+            )
+
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            prompt = f"""
+Current Date/Time: {now}
+User Selected Match: {req.home_team} vs {req.away_team} at {req.venue}
+
+Base Model (OmniModel) Statistical Prediction:
+- {req.home_team} Win Prob: {result["home_win_prob"]}%
+- {req.away_team} Win Prob: {result["away_win_prob"]}%
+
+Real-time Web Heuristics / News Headlines:
+{req.home_team} News:
+{"- " + chr(10).join(home_news)}
+
+{req.away_team} News:
+{"- " + chr(10).join(away_news)}
+
+Task: You are the final AI glue. The base model uses historical data and continuous stats. You must factor in the real-time news (injuries, sentiment, momentum) and output a finalized prediction. Briefly explain your reasoning based on the news, then give the final adjusted win probability. Keep it concise.
+"""
+            yield (
+                json.dumps(
+                    {"type": "llm", "content": "\n\n🧠 OpenRouter LLM Analysis:\n\n"}
+                )
+                + "\n"
+            )
+
+            async for chunk in query_openrouter_stream(
+                prompt, req.openrouter_key, req.openrouter_model
+            ):
+                yield json.dumps({"type": "llm", "content": chunk}) + "\n"
+
+            yield json.dumps({"type": "llm", "content": "\n\n"}) + "\n"
+
     return StreamingResponse(generate(), media_type="application/x-ndjson")
 
 
@@ -300,6 +417,36 @@ async def generate_sgm(req: MatchRequest):
         }
 
         yield json.dumps({"type": "result", "content": result}) + "\n"
+
+        if req.openrouter_key:
+            yield json.dumps({"type": "thinking", "content": "Fetching real-time heuristic data for SGM..."}) + "\n"
+            home_news = get_team_news(req.home_team)
+            away_news = get_team_news(req.away_team)
+            
+            yield json.dumps({"type": "thinking", "content": "Consulting OpenRouter LLM for SGM refinement..."}) + "\n"
+            
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            prompt = f"""
+Current Date/Time: {now}
+User Selected Match: {req.home_team} vs {req.away_team}
+
+Base OmniModel Projected Ladbrokes Odds:
+- {req.home_team}: {round(home_odds, 2)}, {req.away_team}: {round(away_odds, 2)}
+- Line: +/- {line}
+- Total Points: {round(total)}
+
+News Context:
+{req.home_team}: {'; '.join(home_news)}
+{req.away_team}: {'; '.join(away_news)}
+
+Task: Given the base algorithmic odds and the recent news (heuristics), construct a final "AI Value SGM (Same Game Multi)". Pick 3 legs that offer the most value. Explain your reasoning briefly. Keep it concise.
+"""
+            yield json.dumps({"type": "llm", "content": "\n\n🧠 OpenRouter SGM Analysis:\n\n"}) + "\n"
+            
+            async for chunk in query_openrouter_stream(prompt, req.openrouter_key, req.openrouter_model):
+                yield json.dumps({"type": "llm", "content": chunk}) + "\n"
+                
+            yield json.dumps({"type": "llm", "content": "\n\n"}) + "\n"
 
     return StreamingResponse(generate(), media_type="application/x-ndjson")
 
@@ -472,7 +619,7 @@ async def simulate_match(req: MatchRequest):
     return StreamingResponse(generate(), media_type="application/x-ndjson")
 
 
-@app.post("/api/train")
+        @app.post("/api/train")
 async def trigger_training(req: TrainRequest):
     async def generate():
         env = os.environ.copy()
@@ -480,27 +627,32 @@ async def trigger_training(req: TrainRequest):
         env["TRAIN_BATCH_SIZE"] = str(req.batch_size)
         env["TRAIN_LR"] = str(req.learning_rate)
         env["PYTHONUNBUFFERED"] = "1"
-
-        yield f"Starting training process with {req.epochs} epochs, Batch Size {req.batch_size}, LR {req.learning_rate}...\n\n"
-
-        process = await asyncio.create_subprocess_exec(
-            "python",
-            "train_omni.py",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-            env=env,
-        )
-
-        while True:
-            line = await process.stdout.readline()
-            if not line:
-                break
-            yield line.decode("utf-8")
-
-        await process.wait()
-        yield f"\nTraining completed with return code {process.returncode}\n"
-
-    return StreamingResponse(generate(), media_type="text/plain")
+        
+        yield json.dumps({"type": "training", "content": f"Starting training process with {req.epochs} epochs, Batch Size {req.batch_size}, LR {req.learning_rate}...\n\n"}) + "\n"
+        
+        try:
+            # Popen is much more robust on Windows event loops than create_subprocess_exec
+            def run_train():
+                process = subprocess.Popen(
+                    [sys.executable, "train_omni.py"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    env=env,
+                    bufsize=1
+                )
+                for line in iter(process.stdout.readline, ''):
+                    yield line
+                process.wait()
+                yield f"\nTraining completed with return code {process.returncode}\n"
+            
+            for chunk in run_train():
+                yield json.dumps({"type": "training", "content": chunk}) + "\n"
+                await asyncio.sleep(0.01) # Allow event loop to breathe
+        except Exception as e:
+            yield json.dumps({"type": "training", "content": f"\nError: {str(e)}\n"}) + "\n"
+        
+    return StreamingResponse(generate(), media_type="application/x-ndjson")
 
 
 @app.post("/api/load_model")

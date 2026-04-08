@@ -152,54 +152,75 @@
             document.getElementById('resultsContent').textContent = text;
         }
 
-        document.getElementById('btnPredict').onclick = async () => {
-            displayResult("Predicting outcome...\nWait a moment please.");
+        async function fetchStream(url, body) {
+            const reqOpts = {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            };
+            if (body) reqOpts.body = JSON.stringify(body);
+
             try {
-                const res = await fetch('/api/predict', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(getReqBody())
-                });
-                const data = await res.json();
-                displayResult(JSON.stringify(data, null, 2));
+                const res = await fetch(url, reqOpts);
+                if (!res.ok) {
+                    const err = await res.json();
+                    displayResult("Error: " + (err.detail || res.statusText));
+                    return;
+                }
+                
+                const isText = res.headers.get("content-type").includes("text/plain");
+                const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+                let buffer = "";
+                
+                while (true) {
+                    const {value, done} = await reader.read();
+                    if (done) break;
+                    
+                    const box = document.getElementById('resultsContent');
+                    
+                    if (isText) {
+                        box.textContent += value;
+                        box.scrollTop = box.scrollHeight;
+                    } else {
+                        buffer += value;
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop(); // keep last incomplete line
+                        
+                        for (const line of lines) {
+                            if (!line.trim()) continue;
+                            try {
+                                const data = JSON.parse(line);
+                                if (data.type === "thinking") {
+                                    box.textContent += `[AI Thinking] ${data.content}\n`;
+                                } else if (data.type === "play") {
+                                    box.textContent += `🏉 ${data.content}\n`;
+                                } else if (data.type === "result") {
+                                    box.textContent += `\n🎯 Final Result:\n${JSON.stringify(data.content, null, 2)}\n`;
+                                }
+                                box.scrollTop = box.scrollHeight;
+                            } catch (e) {
+                                console.error("Parse err", line);
+                            }
+                        }
+                    }
+                }
             } catch (err) {
-                displayResult("Error: " + err.message);
+                displayResult("Connection Error: " + err.message);
             }
+        }
+
+        document.getElementById('btnPredict').onclick = async () => {
+            displayResult("Predicting outcome...\n\n");
+            await fetchStream('/api/predict', getReqBody());
         };
 
         document.getElementById('btnSimulate').onclick = async () => {
-            displayResult("Simulating match play-by-play...\nGenerating sequence...");
-            try {
-                const res = await fetch('/api/simulate', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ ...getReqBody(), num_plays: 10 })
-                });
-                const data = await res.json();
-                
-                if (data.play_by_play) {
-                    displayResult("🏟️ Play-by-Play Sequence:\n\n" + data.play_by_play.join("\n"));
-                } else {
-                    displayResult(JSON.stringify(data, null, 2));
-                }
-            } catch (err) {
-                displayResult("Error: " + err.message);
-            }
+            displayResult("Simulating match play-by-play...\n\n");
+            await fetchStream('/api/simulate', { ...getReqBody(), plays: 15 });
         };
 
         document.getElementById('btnSGM').onclick = async () => {
-            displayResult("Analyzing match parameters to generate Ladbrokes SGM...");
-            try {
-                const res = await fetch('/api/sgm', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(getReqBody())
-                });
-                const data = await res.json();
-                displayResult(JSON.stringify(data, null, 2));
-            } catch (err) {
-                displayResult("Error: " + err.message);
-            }
+            displayResult("Analyzing match parameters to generate Ladbrokes SGM...\n\n");
+            await fetchStream('/api/sgm', getReqBody());
         };
 
         document.getElementById('btnTrain').onclick = async () => {
@@ -208,32 +229,17 @@
                 batch_size: parseInt(document.getElementById('trainBatch').value) || 8,
                 learning_rate: parseFloat(document.getElementById('trainLr').value) || 0.001
             };
-            displayResult(`Triggered model training with ${req.epochs} epochs, batch size ${req.batch_size}, LR ${req.learning_rate}...\n\nCheck terminal/console for live training output.`);
-            try {
-                const res = await fetch('/api/train', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(req)
-                });
-                const data = await res.json();
-                displayResult(JSON.stringify(data, null, 2) + "\n\n(Wait a moment and then click 'Load .pt Model' to use the new weights)");
-            } catch (err) {
-                displayResult("Error: " + err.message);
-            }
+            displayResult("Initializing remote training cluster...\n");
+            await fetchStream('/api/train', req);
+            
+            const box = document.getElementById('resultsContent');
+            box.textContent += "\n\n(Click 'Load .pt Model' to use the new weights)";
+            box.scrollTop = box.scrollHeight;
         };
 
         document.getElementById('btnLoad').onclick = async () => {
-            displayResult("Loading compiled OmniModel .pt file...");
-            try {
-                const res = await fetch('/api/load_model', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                const data = await res.json();
-                displayResult(JSON.stringify(data, null, 2));
-            } catch (err) {
-                displayResult("Error: " + err.message);
-            }
+            displayResult("Loading compiled OmniModel .pt file...\n");
+            await fetchStream('/api/load_model');
         };
 
         // Initialize on load

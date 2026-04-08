@@ -88,15 +88,18 @@ def train():
     model = NRLOmniModel(config).to(device)
 
     dataset = DummyOmniDataset()
-    loader = DataLoader(dataset, batch_size=8, shuffle=True)
+    epochs = int(os.environ.get("TRAIN_EPOCHS", 2))
+    batch_size = int(os.environ.get("TRAIN_BATCH_SIZE", 8))
+    lr = float(os.environ.get("TRAIN_LR", 1e-3))
 
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     bce = nn.BCELoss()
     mse = nn.MSELoss()
     ce = nn.CrossEntropyLoss()
 
-    epochs = 2
     model.train()
     for epoch in range(epochs):
         total_loss = 0

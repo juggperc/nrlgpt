@@ -17,40 +17,71 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             <!-- Sidebar Setup -->
-            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit space-y-4">
-                <h2 class="font-semibold text-lg border-b pb-2 mb-4">Match Setup</h2>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Home Team</label>
-                    <select id="homeTeam" class="w-full border border-gray-300 rounded p-2.5 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option>Loading...</option>
-                    </select>
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit space-y-4">
+                    <h2 class="font-semibold text-lg border-b pb-2 mb-4">Match Setup</h2>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Home Team</label>
+                        <select id="homeTeam" class="w-full border border-gray-300 rounded p-2.5 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option>Loading...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Away Team</label>
+                        <select id="awayTeam" class="w-full border border-gray-300 rounded p-2.5 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option>Loading...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Venue</label>
+                        <select id="venue" class="w-full border border-gray-300 rounded p-2.5 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option>Loading...</option>
+                        </select>
+                    </div>
+
+                    <div class="pt-4 space-y-3 border-t mt-4">
+                        <button type="button" id="btnPredict" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded transition-colors shadow-sm">
+                            Predict Outcome
+                        </button>
+                        <button type="button" id="btnSimulate" class="w-full bg-white hover:bg-gray-50 text-gray-800 font-medium py-2.5 px-4 rounded border border-gray-300 transition-colors shadow-sm">
+                            Simulate Play-by-Play
+                        </button>
+                        <button type="button" id="btnSGM" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded transition-colors shadow-sm">
+                            Generate SGM
+                        </button>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Away Team</label>
-                    <select id="awayTeam" class="w-full border border-gray-300 rounded p-2.5 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option>Loading...</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Venue</label>
-                    <select id="venue" class="w-full border border-gray-300 rounded p-2.5 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option>Loading...</option>
-                    </select>
-                </div>
-
-                <div class="pt-4 space-y-3 border-t mt-4">
-                    <button type="button" id="btnPredict" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded transition-colors shadow-sm">
-                        Predict Outcome
-                    </button>
-                    <button type="button" id="btnSimulate" class="w-full bg-white hover:bg-gray-50 text-gray-800 font-medium py-2.5 px-4 rounded border border-gray-300 transition-colors shadow-sm">
-                        Simulate Play-by-Play
-                    </button>
-                    <button type="button" id="btnSGM" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded transition-colors shadow-sm">
-                        Generate SGM
-                    </button>
+                <!-- Training & Model Management -->
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit space-y-4">
+                    <h2 class="font-semibold text-lg border-b pb-2 mb-4">Model Training</h2>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Epochs</label>
+                            <input type="number" id="trainEpochs" value="5" class="w-full border border-gray-300 rounded p-2 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Batch Size</label>
+                            <input type="number" id="trainBatch" value="8" class="w-full border border-gray-300 rounded p-2 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Learning Rate</label>
+                            <input type="number" step="0.0001" id="trainLr" value="0.001" class="w-full border border-gray-300 rounded p-2 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                    </div>
+                    
+                    <div class="pt-4 space-y-3 border-t mt-4">
+                        <button type="button" id="btnTrain" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded transition-colors shadow-sm">
+                            Train OmniModel
+                        </button>
+                        <button type="button" id="btnLoad" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-2.5 px-4 rounded transition-colors shadow-sm">
+                            Load .pt Model
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -163,6 +194,40 @@
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(getReqBody())
+                });
+                const data = await res.json();
+                displayResult(JSON.stringify(data, null, 2));
+            } catch (err) {
+                displayResult("Error: " + err.message);
+            }
+        };
+
+        document.getElementById('btnTrain').onclick = async () => {
+            const req = {
+                epochs: parseInt(document.getElementById('trainEpochs').value) || 5,
+                batch_size: parseInt(document.getElementById('trainBatch').value) || 8,
+                learning_rate: parseFloat(document.getElementById('trainLr').value) || 0.001
+            };
+            displayResult(`Triggered model training with ${req.epochs} epochs, batch size ${req.batch_size}, LR ${req.learning_rate}...\n\nCheck terminal/console for live training output.`);
+            try {
+                const res = await fetch('/api/train', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(req)
+                });
+                const data = await res.json();
+                displayResult(JSON.stringify(data, null, 2) + "\n\n(Wait a moment and then click 'Load .pt Model' to use the new weights)");
+            } catch (err) {
+                displayResult("Error: " + err.message);
+            }
+        };
+
+        document.getElementById('btnLoad').onclick = async () => {
+            displayResult("Loading compiled OmniModel .pt file...");
+            try {
+                const res = await fetch('/api/load_model', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
                 });
                 const data = await res.json();
                 displayResult(JSON.stringify(data, null, 2));

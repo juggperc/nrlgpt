@@ -34,20 +34,59 @@ class MatchRequest(BaseModel):
 
 class TrainRequest(BaseModel):
     epochs: int = 5
+    batch_size: int = 8
+    learning_rate: float = 0.001
 
 
 @app.get("/api/info")
 def get_info():
+    # Use real-world NRL team names and venues instead of generic placeholders
+    real_teams = [
+        "Brisbane Broncos",
+        "Canberra Raiders",
+        "Canterbury-Bankstown Bulldogs",
+        "Cronulla-Sutherland Bulldogs",
+        "Dolphins",
+        "Gold Coast Titans",
+        "Manly Warringah Sea Eagles",
+        "Melbourne Storm",
+        "Newcastle Knights",
+        "New Zealand Warriors",
+        "North Queensland Titans",
+        "Parramatta Sea Eagles",
+        "Penrith Panthers",
+        "South Sydney Eels",
+        "St. George Illawarra Dragons",
+        "Sydney Roosters",
+        "Wests Tigers",
+    ]
+    real_venues = [
+        "Suncorp Stadium",
+        "GIO Stadium",
+        "Accor Stadium",
+        "PointsBet Stadium",
+        "Kayo Stadium",
+        "Cbus Super Stadium",
+        "4 Pines Park",
+        "AAMI Park",
+        "McDonald Jones Stadium",
+        "Go Media Stadium",
+        "Queensland Country Bank Stadium",
+        "CommBank Stadium",
+        "BlueBet Stadium",
+        "Netstrata Jubilee Stadium",
+        "Allianz Stadium",
+        "Campbelltown Sports Stadium",
+        "Leichhardt Oval",
+    ]
+
     if omni_model is None:
-        return {"status": "Needs Training", "teams": [], "venues": []}
-    # For a real implementation, we'd extract these from the encoder.
-    # For now, since the UI expects lists, we'll mock the names that correspond to the tensor indices.
-    teams = [f"Team {i}" for i in range(20)]
-    venues = [f"Venue {i}" for i in range(30)]
+        return {"status": "Needs Training", "teams": real_teams, "venues": real_venues}
+
     return {
         "status": "Ready",
-        "teams": teams,
-        "venues": venues,
+        "teams": real_teams,
+        "venues": real_venues,
     }
 
 
@@ -274,14 +313,45 @@ def simulate_match(req: MatchRequest):
     return {"plays": history}
 
 
-def run_training_script(script_name: str):
-    subprocess.run(["python", script_name], check=True)
+def run_training_script(script_name: str, epochs: int, batch_size: int, lr: float):
+    # Pass settings as env vars so train_omni can read them if needed
+    env = os.environ.copy()
+    env["TRAIN_EPOCHS"] = str(epochs)
+    env["TRAIN_BATCH_SIZE"] = str(batch_size)
+    env["TRAIN_LR"] = str(lr)
+    subprocess.run(["python", script_name], env=env, check=True)
 
 
 @app.post("/api/train")
 def trigger_training(req: TrainRequest, background_tasks: BackgroundTasks):
-    background_tasks.add_task(run_training_script, "train_omni.py")
-    return {"status": "Training started in background. Check console for logs."}
+    background_tasks.add_task(
+        run_training_script,
+        "train_omni.py",
+        req.epochs,
+        req.batch_size,
+        req.learning_rate,
+    )
+    return {
+        "status": "Training started in background. The UI will indicate when you can reload the model."
+    }
+
+
+@app.post("/api/load_model")
+def load_model():
+    global omni_model
+    try:
+        if os.path.exists("dist/NRL_OmniModel_SOTA.pt"):
+            omni_model = torch.jit.load(
+                "dist/NRL_OmniModel_SOTA.pt", map_location=device
+            )
+            omni_model.eval()
+            return {"status": "Model loaded successfully!"}
+        else:
+            return {
+                "status": "Error: dist/NRL_OmniModel_SOTA.pt not found. Run training first."
+            }
+    except Exception as e:
+        return {"status": f"Error loading model: {str(e)}"}
 
 
 os.makedirs("static", exist_ok=True)

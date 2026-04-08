@@ -419,12 +419,28 @@ async def generate_sgm(req: MatchRequest):
         yield json.dumps({"type": "result", "content": result}) + "\n"
 
         if req.openrouter_key:
-            yield json.dumps({"type": "thinking", "content": "Fetching real-time heuristic data for SGM..."}) + "\n"
+            yield (
+                json.dumps(
+                    {
+                        "type": "thinking",
+                        "content": "Fetching real-time heuristic data for SGM...",
+                    }
+                )
+                + "\n"
+            )
             home_news = get_team_news(req.home_team)
             away_news = get_team_news(req.away_team)
-            
-            yield json.dumps({"type": "thinking", "content": "Consulting OpenRouter LLM for SGM refinement..."}) + "\n"
-            
+
+            yield (
+                json.dumps(
+                    {
+                        "type": "thinking",
+                        "content": "Consulting OpenRouter LLM for SGM refinement...",
+                    }
+                )
+                + "\n"
+            )
+
             now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             prompt = f"""
 Current Date/Time: {now}
@@ -436,16 +452,23 @@ Base OmniModel Projected Ladbrokes Odds:
 - Total Points: {round(total)}
 
 News Context:
-{req.home_team}: {'; '.join(home_news)}
-{req.away_team}: {'; '.join(away_news)}
+{req.home_team}: {"; ".join(home_news)}
+{req.away_team}: {"; ".join(away_news)}
 
 Task: Given the base algorithmic odds and the recent news (heuristics), construct a final "AI Value SGM (Same Game Multi)". Pick 3 legs that offer the most value. Explain your reasoning briefly. Keep it concise.
 """
-            yield json.dumps({"type": "llm", "content": "\n\n🧠 OpenRouter SGM Analysis:\n\n"}) + "\n"
-            
-            async for chunk in query_openrouter_stream(prompt, req.openrouter_key, req.openrouter_model):
+            yield (
+                json.dumps(
+                    {"type": "llm", "content": "\n\n🧠 OpenRouter SGM Analysis:\n\n"}
+                )
+                + "\n"
+            )
+
+            async for chunk in query_openrouter_stream(
+                prompt, req.openrouter_key, req.openrouter_model
+            ):
                 yield json.dumps({"type": "llm", "content": chunk}) + "\n"
-                
+
             yield json.dumps({"type": "llm", "content": "\n\n"}) + "\n"
 
     return StreamingResponse(generate(), media_type="application/x-ndjson")
@@ -619,7 +642,7 @@ async def simulate_match(req: MatchRequest):
     return StreamingResponse(generate(), media_type="application/x-ndjson")
 
 
-        @app.post("/api/train")
+@app.post("/api/train")
 async def trigger_training(req: TrainRequest):
     async def generate():
         env = os.environ.copy()
@@ -627,9 +650,17 @@ async def trigger_training(req: TrainRequest):
         env["TRAIN_BATCH_SIZE"] = str(req.batch_size)
         env["TRAIN_LR"] = str(req.learning_rate)
         env["PYTHONUNBUFFERED"] = "1"
-        
-        yield json.dumps({"type": "training", "content": f"Starting training process with {req.epochs} epochs, Batch Size {req.batch_size}, LR {req.learning_rate}...\n\n"}) + "\n"
-        
+
+        yield (
+            json.dumps(
+                {
+                    "type": "training",
+                    "content": f"Starting training process with {req.epochs} epochs, Batch Size {req.batch_size}, LR {req.learning_rate}...\n\n",
+                }
+            )
+            + "\n"
+        )
+
         try:
             # Popen is much more robust on Windows event loops than create_subprocess_exec
             def run_train():
@@ -639,19 +670,22 @@ async def trigger_training(req: TrainRequest):
                     stderr=subprocess.STDOUT,
                     text=True,
                     env=env,
-                    bufsize=1
+                    bufsize=1,
                 )
-                for line in iter(process.stdout.readline, ''):
+                for line in iter(process.stdout.readline, ""):
                     yield line
                 process.wait()
                 yield f"\nTraining completed with return code {process.returncode}\n"
-            
+
             for chunk in run_train():
                 yield json.dumps({"type": "training", "content": chunk}) + "\n"
-                await asyncio.sleep(0.01) # Allow event loop to breathe
+                await asyncio.sleep(0.01)  # Allow event loop to breathe
         except Exception as e:
-            yield json.dumps({"type": "training", "content": f"\nError: {str(e)}\n"}) + "\n"
-        
+            yield (
+                json.dumps({"type": "training", "content": f"\nError: {str(e)}\n"})
+                + "\n"
+            )
+
     return StreamingResponse(generate(), media_type="application/x-ndjson")
 
 

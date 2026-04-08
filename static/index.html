@@ -3,182 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NRL AI Simulator Dashboard</title>
+    <title>NRL AI Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        background: 'hsl(var(--background))',
-                        foreground: 'hsl(var(--foreground))',
-                        card: 'hsl(var(--card))',
-                        'card-foreground': 'hsl(var(--card-foreground))',
-                        popover: 'hsl(var(--popover))',
-                        'popover-foreground': 'hsl(var(--popover-foreground))',
-                        primary: 'hsl(var(--primary))',
-                        'primary-foreground': 'hsl(var(--primary-foreground))',
-                        secondary: 'hsl(var(--secondary))',
-                        'secondary-foreground': 'hsl(var(--secondary-foreground))',
-                        muted: 'hsl(var(--muted))',
-                        'muted-foreground': 'hsl(var(--muted-foreground))',
-                        accent: 'hsl(var(--accent))',
-                        'accent-foreground': 'hsl(var(--accent-foreground))',
-                        border: 'hsl(var(--border))',
-                        input: 'hsl(var(--input))',
-                        ring: 'hsl(var(--ring))',
-                    },
-                    borderRadius: {
-                        lg: 'var(--radius)',
-                        md: 'calc(var(--radius) - 2px)',
-                        sm: 'calc(var(--radius) - 4px)',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        :root {
-            --background: 0 0% 98%;
-            --foreground: 222.2 84% 4.9%;
-            --card: 0 0% 100%;
-            --card-foreground: 222.2 84% 4.9%;
-            --popover: 0 0% 100%;
-            --popover-foreground: 222.2 84% 4.9%;
-            --primary: 221.2 83.2% 53.3%;
-            --primary-foreground: 210 40% 98%;
-            --secondary: 210 40% 96.1%;
-            --secondary-foreground: 222.2 47.4% 11.2%;
-            --muted: 210 40% 96.1%;
-            --muted-foreground: 215.4 16.3% 46.9%;
-            --accent: 210 40% 96.1%;
-            --accent-foreground: 222.2 47.4% 11.2%;
-            --border: 214.3 31.8% 91.4%;
-            --input: 214.3 31.8% 91.4%;
-            --ring: 221.2 83.2% 53.3%;
-            --radius: 0.75rem;
-        }
-        body {
-            background-color: hsl(var(--background));
-            color: hsl(var(--foreground));
-        }
-    </style>
 </head>
-<body class="min-h-screen font-sans antialiased p-4 md:p-8">
-    <div class="mx-auto max-w-6xl space-y-6">
+<body class="bg-gray-50 text-gray-900 p-4 md:p-8 font-sans">
+    <div class="max-w-5xl mx-auto space-y-6">
         
-        <!-- Header -->
-        <div class="flex flex-col space-y-2 mb-8">
-            <h1 class="text-3xl font-bold tracking-tight">NRL AI Simulator</h1>
-            <p class="text-muted-foreground flex items-center gap-2">
-                <i data-lucide="cpu" class="w-4 h-4"></i>
-                Powered by NRL OmniModel (TorchScript) on local RTX 3070
-            </p>
-        </div>
+        <header class="mb-8 border-b pb-4">
+            <h1 class="text-3xl font-bold text-gray-900">NRL AI Simulator</h1>
+            <p class="text-gray-500 mt-1">Powered by NRL OmniModel</p>
+        </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            <!-- Sidebar Controls -->
-            <div class="md:col-span-4 flex flex-col gap-4">
-                <div class="rounded-xl border bg-card text-card-foreground shadow-sm">
-                    <div class="flex flex-col space-y-1.5 p-6">
-                        <h3 class="font-semibold leading-none tracking-tight">Match Setup</h3>
-                        <p class="text-sm text-muted-foreground">Configure the teams and venue</p>
-                    </div>
-                    <div class="p-6 pt-0 space-y-4">
-                        <div class="space-y-2">
-                            <label class="text-sm font-medium leading-none">Home Team</label>
-                            <select id="homeTeam" class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"></select>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-sm font-medium leading-none">Away Team</label>
-                            <select id="awayTeam" class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"></select>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-sm font-medium leading-none">Venue</label>
-                            <select id="venue" class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"></select>
-                        </div>
-                    </div>
+            <!-- Sidebar Setup -->
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit space-y-4">
+                <h2 class="font-semibold text-lg border-b pb-2 mb-4">Match Setup</h2>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Home Team</label>
+                    <select id="homeTeam" class="w-full border border-gray-300 rounded p-2.5 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option>Loading...</option>
+                    </select>
                 </div>
 
-                <div class="rounded-xl border bg-card text-card-foreground shadow-sm">
-                    <div class="p-6 space-y-3">
-                        <button id="btnPredict" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full gap-2 shadow-sm">
-                            <i data-lucide="bar-chart" class="w-4 h-4"></i> Predict Outcome
-                        </button>
-                        <button id="btnSimulate" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full gap-2 shadow-sm">
-                            <i data-lucide="play" class="w-4 h-4"></i> Simulate Play-by-Play
-                        </button>
-                        <button id="btnSGM" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 w-full gap-2 shadow-sm">
-                            <i data-lucide="ticket" class="w-4 h-4"></i> Generate SGM
-                        </button>
-                    </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Away Team</label>
+                    <select id="awayTeam" class="w-full border border-gray-300 rounded p-2.5 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option>Loading...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Venue</label>
+                    <select id="venue" class="w-full border border-gray-300 rounded p-2.5 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option>Loading...</option>
+                    </select>
+                </div>
+
+                <div class="pt-4 space-y-3 border-t mt-4">
+                    <button type="button" id="btnPredict" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded transition-colors shadow-sm">
+                        Predict Outcome
+                    </button>
+                    <button type="button" id="btnSimulate" class="w-full bg-white hover:bg-gray-50 text-gray-800 font-medium py-2.5 px-4 rounded border border-gray-300 transition-colors shadow-sm">
+                        Simulate Play-by-Play
+                    </button>
+                    <button type="button" id="btnSGM" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded transition-colors shadow-sm">
+                        Generate SGM
+                    </button>
                 </div>
             </div>
 
             <!-- Main Content Area -->
-            <div class="md:col-span-8 flex flex-col gap-6">
+            <div class="md:col-span-2 space-y-6">
                 
-                <!-- Outcome Prediction -->
-                <div id="outcomeBox" class="rounded-xl border bg-card text-card-foreground shadow-sm hidden">
-                    <div class="flex flex-col space-y-1.5 p-6 border-b">
-                        <h3 class="font-semibold leading-none tracking-tight flex items-center gap-2">
-                            <i data-lucide="activity" class="w-4 h-4 text-blue-500"></i> Match Prediction
-                        </h3>
+                <!-- Output Box -->
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <div class="flex justify-between items-center border-b pb-2 mb-4">
+                        <h2 class="font-semibold text-lg">Results Output</h2>
                     </div>
-                    <div class="p-6 pt-6">
-                        <p id="predText" class="text-sm text-muted-foreground"></p>
-                    </div>
-                </div>
-
-                <!-- SGM Betslip -->
-                <div id="sgmBox" class="rounded-xl border bg-[#1a1a1a] text-white shadow-sm hidden overflow-hidden">
-                    <div class="flex flex-col space-y-1.5 p-4 border-b border-gray-800 bg-[#222]">
-                        <div class="flex justify-between items-center">
-                            <h3 class="font-bold leading-none tracking-wider text-red-500 uppercase text-lg">Same Game Multi</h3>
-                            <span class="inline-flex items-center rounded-full border border-gray-700 px-2.5 py-0.5 text-xs font-semibold bg-gray-800">
-                                AI Built
-                            </span>
-                        </div>
-                    </div>
-                    <div class="p-4 space-y-4" id="sgmContent">
-                        <!-- SGM content injected here -->
-                    </div>
-                    <div class="p-4 bg-gray-900 border-t border-gray-800">
-                        <h4 class="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">OmniModel Reasoning</h4>
-                        <ul id="sgmReasoning" class="text-xs text-green-400 font-mono space-y-1 list-disc pl-4">
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Field Position Chart -->
-                <div class="rounded-xl border bg-card text-card-foreground shadow-sm">
-                    <div class="flex flex-col space-y-1.5 p-6 border-b">
-                        <h3 class="font-semibold leading-none tracking-tight flex items-center gap-2">
-                            <i data-lucide="map" class="w-4 h-4"></i> Field Position Tracker
-                        </h3>
-                    </div>
-                    <div class="p-6">
-                        <div style="height: 300px;">
-                            <canvas id="matchChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Play by Play Log -->
-                <div class="rounded-xl border bg-card text-card-foreground shadow-sm">
-                    <div class="flex flex-col space-y-1.5 p-6 border-b">
-                        <h3 class="font-semibold leading-none tracking-tight flex items-center gap-2">
-                            <i data-lucide="list" class="w-4 h-4"></i> Play-by-Play Log
-                        </h3>
-                    </div>
-                    <div class="p-0">
-                        <ul id="commentaryLog" class="text-sm space-y-0 font-mono h-64 overflow-y-auto divide-y">
-                            <li class="p-3 text-muted-foreground">Awaiting simulation...</li>
-                        </ul>
-                    </div>
+                    <div id="resultsContent" class="text-sm text-gray-800 font-mono whitespace-pre-wrap h-[500px] overflow-y-auto bg-gray-50 p-4 rounded border border-gray-200">Awaiting action... Select teams and click a button to begin.</div>
                 </div>
 
             </div>
@@ -186,75 +70,109 @@
     </div>
 
     <script>
-        lucide.createIcons();
-        let chartInstance = null;
-
-        async function init() {
+        async function fetchInfo() {
             try {
                 const res = await fetch('/api/info');
                 const data = await res.json();
                 
-                if(data.teams && data.teams.length > 0) {
-                    const hSel = document.getElementById('homeTeam');
-                    const aSel = document.getElementById('awayTeam');
-                    const vSel = document.getElementById('venue');
-                    
-                    data.teams.forEach(t => {
-                        hSel.add(new Option(t, t));
-                        aSel.add(new Option(t, t));
+                const homeSelect = document.getElementById('homeTeam');
+                const awaySelect = document.getElementById('awayTeam');
+                const venueSelect = document.getElementById('venue');
+                
+                homeSelect.innerHTML = '';
+                awaySelect.innerHTML = '';
+                venueSelect.innerHTML = '';
+
+                if (data.teams && data.teams.length > 0) {
+                    data.teams.forEach(team => {
+                        homeSelect.add(new Option(team, team));
+                        awaySelect.add(new Option(team, team));
                     });
-                    data.venues.forEach(v => {
-                        vSel.add(new Option(v, v));
-                    });
-                    
-                    hSel.value = data.teams[0];
-                    aSel.value = data.teams[1] || data.teams[0];
-                    if(data.venues.length > 0) vSel.value = data.venues[0];
+
+                    if(data.teams.length > 1) {
+                        awaySelect.selectedIndex = 1;
+                    }
+                } else {
+                    homeSelect.add(new Option("No teams found", ""));
                 }
-            } catch(e) {
-                console.error("API not reachable yet", e);
+
+                if (data.venues && data.venues.length > 0) {
+                    data.venues.forEach(venue => {
+                        venueSelect.add(new Option(venue, venue));
+                    });
+                } else {
+                    venueSelect.add(new Option("No venues found", ""));
+                }
+            } catch (err) {
+                console.error("Failed to load info", err);
+                document.getElementById('resultsContent').textContent = "Error loading teams. Is the API running?";
             }
         }
 
-        document.getElementById('btnPredict').onclick = async () => {
-            const req = {
+        function getReqBody() {
+            return {
                 home_team: document.getElementById('homeTeam').value,
                 away_team: document.getElementById('awayTeam').value,
                 venue: document.getElementById('venue').value
             };
-            
+        }
+
+        function displayResult(text) {
+            document.getElementById('resultsContent').textContent = text;
+        }
+
+        document.getElementById('btnPredict').onclick = async () => {
+            displayResult("Predicting outcome...\nWait a moment please.");
             try {
                 const res = await fetch('/api/predict', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(req)
+                    body: JSON.stringify(getReqBody())
                 });
                 const data = await res.json();
-                
-                const box = document.getElementById('outcomeBox');
-                box.classList.remove('hidden');
-                document.getElementById('predText').innerHTML = 
-                    <div class="flex justify-between items-center mb-2">
-                        <strong class="text-foreground"></strong>
-                        <span class="font-mono text-primary">%</span>
-                    </div>
-                    <div class="flex justify-between items-center mb-4">
-                        <strong class="text-foreground"></strong>
-                        <span class="font-mono text-primary">%</span>
-                    </div>
-                    <div class="pt-4 border-t text-sm font-semibold">
-                        Predicted Winner: <span class="text-primary"></span>
-                    </div>
-                ;
-            } catch(e) {
-                alert("Error predicting outcome.");
+                displayResult(JSON.stringify(data, null, 2));
+            } catch (err) {
+                displayResult("Error: " + err.message);
             }
         };
 
-        // Other bindings (btnSimulate, btnSGM) follow similar modern patterns
-        // They remain exactly functionally equivalent to previous logic.
+        document.getElementById('btnSimulate').onclick = async () => {
+            displayResult("Simulating match play-by-play...\nGenerating sequence...");
+            try {
+                const res = await fetch('/api/simulate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ ...getReqBody(), num_plays: 10 })
+                });
+                const data = await res.json();
+                
+                if (data.play_by_play) {
+                    displayResult("🏟️ Play-by-Play Sequence:\n\n" + data.play_by_play.join("\n"));
+                } else {
+                    displayResult(JSON.stringify(data, null, 2));
+                }
+            } catch (err) {
+                displayResult("Error: " + err.message);
+            }
+        };
 
-        init();
+        document.getElementById('btnSGM').onclick = async () => {
+            displayResult("Analyzing match parameters to generate Ladbrokes SGM...");
+            try {
+                const res = await fetch('/api/sgm', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(getReqBody())
+                });
+                const data = await res.json();
+                displayResult(JSON.stringify(data, null, 2));
+            } catch (err) {
+                displayResult("Error: " + err.message);
+            }
+        };
+
+        // Initialize on load
+        fetchInfo();
     </script>
 </body>
 </html>
